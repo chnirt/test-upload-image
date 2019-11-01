@@ -18,6 +18,7 @@
     "react": "^16.11.0",
     "react-dom": "^16.11.0",
     "react-scripts": "3.2.0",
+    "react-stripe-checkout": "^2.6.3",
     "subscriptions-transport-ws": "^0.9.16"
   },
   "scripts": {
