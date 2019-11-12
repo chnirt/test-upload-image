@@ -1,3 +1,4 @@
+/* eslint-disable */
 import React, { useState, useRef } from "react";
 import SortableTree, {
   addNodeUnderParent,
@@ -19,7 +20,7 @@ function Tree() {
     { title: "Fish", children: [{ title: "fingerline" }] },
     { title: "Pick", children: [{ title: "Pickon" }] }
   ]);
-  // const inputEl = useRef(null);
+  const inputEl = useRef(treeData.map(() => React.createRef()));
 
   const firstNames = ["Chnirt", "Hung", "Hieu"];
 
@@ -39,6 +40,7 @@ function Tree() {
   }
 
   function addNodeSibling(rowInfo) {
+    console.log(inputEl.current[rowInfo.treeIndex].current.value)
     let { node, treeIndex, path } = rowInfo;
 
     let newTree = addNodeUnderParent({
@@ -80,7 +82,7 @@ function Tree() {
         generateNodeProps={rowInfo => ({
           buttons: [
             <div>
-              {/* <input ref={inputEl} type="text" /> */}
+              <input ref={inputEl.current[rowInfo.treeIndex]} type="text" />
               <br />
               <button
                 label="Add Sibling"
