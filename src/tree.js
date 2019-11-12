@@ -21,29 +21,34 @@ function Tree() {
   ]);
   // const inputEl = useRef(null);
 
-  function addNode(rowInfo) {
-    let NEW_NODE = { title: "" };
+  const firstNames = ["Chnirt", "Hung", "Hieu"];
+
+  function addNodeChild(rowInfo) {
     let { node, treeIndex, path } = rowInfo;
-    path.pop();
-    let parentNode = getNodeAtPath({
-      treeData: treeData,
-      path: path,
-      getNodeKey: ({ treeIndex }) => treeIndex,
-      ignoreCollapsed: true
-    });
-    let getNodeKey = ({ node: object, treeIndex: number }) => {
-      return number;
-    };
-    let parentKey = getNodeKey(parentNode);
-    if (parentKey == -1) {
-      parentKey = null;
-    }
+
     let newTree = addNodeUnderParent({
       treeData: treeData,
-      newNode: NEW_NODE,
+      parentKey: path[path.length - 1],
       expandParent: true,
-      parentKey: parentKey,
-      getNodeKey: ({ treeIndex }) => treeIndex
+      getNodeKey,
+      newNode: {
+        title: `${getRandomName()} ${node.title.split(" ")[0]}sson`
+      }
+    });
+    setTreeData(newTree.treeData);
+  }
+
+  function addNodeSibling(rowInfo) {
+    let { node, treeIndex, path } = rowInfo;
+
+    let newTree = addNodeUnderParent({
+      treeData: treeData,
+      parentKey: path[path.length - 2],
+      expandParent: true,
+      getNodeKey,
+      newNode: {
+        title: `${getRandomName()} ${node.title.split(" ")[0]}sson`
+      }
     });
     setTreeData(newTree.treeData);
   }
@@ -53,12 +58,8 @@ function Tree() {
     setTreeData(
       removeNodeAtPath({
         treeData: treeData,
-        path: path, // You can use path from here
-        getNodeKey: ({ node: TreeNode, treeIndex: number }) => {
-          console.log(number);
-          return number;
-        },
-        ignoreCollapsed: false
+        path,
+        getNodeKey
       })
     );
   }
@@ -66,6 +67,10 @@ function Tree() {
   function updateTreeData(treeData) {
     setTreeData(treeData);
   }
+
+  const getNodeKey = ({ treeIndex }) => treeIndex;
+  const getRandomName = () =>
+    firstNames[Math.floor(Math.random() * firstNames.length)];
 
   return (
     <div style={{ height: "100vh" }}>
@@ -77,11 +82,20 @@ function Tree() {
             <div>
               {/* <input ref={inputEl} type="text" /> */}
               <br />
+              <button
+                label="Add Sibling"
+                onClick={event => addNodeSibling(rowInfo)}
+              >
+                Add Sibling
+              </button>
+              <button
+                label="Add Child"
+                onClick={event => addNodeChild(rowInfo)}
+              >
+                Add Child
+              </button>
               <button label="Delete" onClick={event => removeNode(rowInfo)}>
                 Remove
-              </button>
-              <button label="Add" onClick={event => addNode(rowInfo)}>
-                Add
               </button>
             </div>
           ],
