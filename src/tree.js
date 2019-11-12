@@ -22,8 +22,6 @@ function Tree() {
   const inputEl = useRef(null);
 
   function addNode(rowInfo) {
-    inputEl.current.focus();
-    console.log(inputEl.current.value());
     let NEW_NODE = { title: "" };
     let { node, treeIndex, path } = rowInfo;
     path.pop();
