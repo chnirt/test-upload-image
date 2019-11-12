@@ -19,7 +19,7 @@ function Tree() {
     { title: "Fish", children: [{ title: "fingerline" }] },
     { title: "Pick", children: [{ title: "Pickon" }] }
   ]);
-  const inputEl = useRef(null);
+  // const inputEl = useRef(null);
 
   function addNode(rowInfo) {
     let NEW_NODE = { title: "" };
@@ -75,7 +75,7 @@ function Tree() {
         generateNodeProps={rowInfo => ({
           buttons: [
             <div>
-              <input ref={inputEl} type="text" />
+              {/* <input ref={inputEl} type="text" /> */}
               <br />
               <button label="Delete" onClick={event => removeNode(rowInfo)}>
                 Remove
