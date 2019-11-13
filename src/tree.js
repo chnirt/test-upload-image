@@ -22,10 +22,10 @@ function Tree() {
   ]);
   const inputEl = useRef(treeData.map(() => React.createRef()));
 
-  const firstNames = ["Chnirt", "Hung", "Hieu"];
-
   function addNodeChild(rowInfo) {
-    let { node, treeIndex, path } = rowInfo;
+    let { treeIndex, path } = rowInfo;
+
+    const value = inputEl.current[treeIndex].current.value;
 
     let newTree = addNodeUnderParent({
       treeData: treeData,
@@ -33,15 +33,16 @@ function Tree() {
       expandParent: true,
       getNodeKey,
       newNode: {
-        title: `${getRandomName()} ${node.title.split(" ")[0]}sson`
+        title: value
       }
     });
     setTreeData(newTree.treeData);
   }
 
   function addNodeSibling(rowInfo) {
-    console.log(inputEl.current[rowInfo.treeIndex].current.value)
-    let { node, treeIndex, path } = rowInfo;
+    let { treeIndex, path } = rowInfo;
+
+    const value = inputEl.current[treeIndex].current.value;
 
     let newTree = addNodeUnderParent({
       treeData: treeData,
@@ -49,7 +50,7 @@ function Tree() {
       expandParent: true,
       getNodeKey,
       newNode: {
-        title: `${getRandomName()} ${node.title.split(" ")[0]}sson`
+        title: value
       }
     });
     setTreeData(newTree.treeData);
@@ -71,8 +72,6 @@ function Tree() {
   }
 
   const getNodeKey = ({ treeIndex }) => treeIndex;
-  const getRandomName = () =>
-    firstNames[Math.floor(Math.random() * firstNames.length)];
 
   return (
     <div style={{ height: "100vh" }}>
