@@ -5,7 +5,9 @@ import { ApolloProvider } from "@apollo/react-hooks";
 // import Tree from "./tree";
 // import Upload from "./upload";
 // import Stripe from "./stripe";
-import Dnd from "./dnd";
+// import Hdnd from "./h-dnd";
+// import Vdnd from "./v-dnd";
+import Zdnd from "./z-dnd";
 
 function App() {
   return (
@@ -14,7 +16,9 @@ function App() {
         {/* <Tree /> */}
         {/* <Upload /> */}
         {/* <Stripe /> */}
-        <Dnd />
+        {/* <Hdnd /> */}
+        {/* <Vdnd /> */}
+        <Zdnd />
       </ApolloProvider>
     </div>
   );

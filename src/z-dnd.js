@@ -1,10 +1,11 @@
 import React, { useState } from "react";
 import { DragDropContext, Droppable, Draggable } from "react-beautiful-dnd";
 
-const getItems = count =>
+// fake data generator
+const getItems = (count, offset = 0) =>
   Array.from({ length: count }, (v, k) => k).map(k => ({
-    id: `item-${k}`,
-    content: `item ${k}`
+    id: `item-${k + offset}`,
+    content: `item ${k + offset}`
   }));
 
 // a little function to help us with reordering the result
@@ -12,6 +13,23 @@ const reorder = (list, startIndex, endIndex) => {
   const result = Array.from(list);
   const [removed] = result.splice(startIndex, 1);
   result.splice(endIndex, 0, removed);
+
+  return result;
+};
+
+/**
+ * Moves an item from one list to another list.
+ */
+const move = (source, destination, droppableSource, droppableDestination) => {
+  const sourceClone = Array.from(source);
+  const destClone = Array.from(destination);
+  const [removed] = sourceClone.splice(droppableSource.index, 1);
+
+  destClone.splice(droppableDestination.index, 0, removed);
+
+  const result = {};
+  result[droppableSource.droppableId] = sourceClone;
+  result[droppableDestination.droppableId] = destClone;
 
   return result;
 };
@@ -37,42 +55,71 @@ const getListStyle = isDraggingOver => ({
   width: 250
 });
 
-const getListStyleB = isDraggingOver => ({
-  background: isDraggingOver ? "lightblue" : "lightgrey",
-  display: "flex",
-  padding: grid,
-  overflow: "auto"
-});
+function Zdnd() {
+  const [state, setState] = useState({
+    items: getItems(10),
+    selected: getItems(5, 10)
+  });
+  const [id2List] = useState({
+    droppable: "items",
+    droppable2: "selected"
+  });
 
-function Dnd() {
-  const [items, setItems] = useState(getItems(10));
+  function getList(id) {
+    return state[id2List[id]];
+  }
 
   function onDragEnd(result) {
-    // dropped outside the list
-    if (!result.destination) {
+    const { source, destination } = result;
+
+    if (state.items.length <= 1) {
       return;
     }
 
-    const newItems = reorder(
-      items,
-      result.source.index,
-      result.destination.index
-    );
+    // dropped outside the list
+    if (!destination) {
+      return;
+    }
 
-    setItems(newItems);
+    if (source.droppableId === destination.droppableId) {
+      const items = reorder(
+        getList(source.droppableId),
+        source.index,
+        destination.index
+      );
+
+      let state = { items };
+
+      if (source.droppableId === "droppable2") {
+        state = { selected: items };
+      }
+
+      setState(state);
+    } else {
+      const result = move(
+        getList(source.droppableId),
+        getList(destination.droppableId),
+        source,
+        destination
+      );
+
+      setState({
+        items: result.droppable,
+        selected: result.droppable2
+      });
+    }
   }
 
   return (
-    <div>
+    <div style={{ display: "flex", justifyContent: "space-between" }}>
       <DragDropContext onDragEnd={onDragEnd}>
         <Droppable droppableId="droppable">
           {(provided, snapshot) => (
             <div
-              {...provided.droppableProps}
               ref={provided.innerRef}
               style={getListStyle(snapshot.isDraggingOver)}
             >
-              {items.map((item, index) => (
+              {state.items.map((item, index) => (
                 <Draggable key={item.id} draggableId={item.id} index={index}>
                   {(provided, snapshot) => (
                     <div
@@ -93,14 +140,13 @@ function Dnd() {
             </div>
           )}
         </Droppable>
-        <Droppable droppableId="droppable" direction="horizontal">
+        <Droppable droppableId="droppable2">
           {(provided, snapshot) => (
             <div
               ref={provided.innerRef}
-              style={getListStyleB(snapshot.isDraggingOver)}
-              {...provided.droppableProps}
+              style={getListStyle(snapshot.isDraggingOver)}
             >
-              {items.map((item, index) => (
+              {state.selected.map((item, index) => (
                 <Draggable key={item.id} draggableId={item.id} index={index}>
                   {(provided, snapshot) => (
                     <div
@@ -126,4 +172,4 @@ function Dnd() {
   );
 }
 
-export default Dnd;
+export default Zdnd;
