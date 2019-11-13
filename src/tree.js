@@ -29,6 +29,7 @@ function Tree() {
     const value = inputEl.current[treeIndex].current.value;
 
     if (value === "") {
+      inputEl.current[treeIndex].current.focus();
       return;
     }
 
@@ -41,7 +42,10 @@ function Tree() {
         title: value
       }
     });
+
     setTreeData(newTree.treeData);
+
+    inputEl.current[treeIndex].current.value = "";
   }
 
   function addNodeSibling(rowInfo) {
@@ -50,6 +54,7 @@ function Tree() {
     const value = inputEl.current[treeIndex].current.value;
 
     if (value === "") {
+      inputEl.current[treeIndex].current.focus();
       return;
     }
 
@@ -62,7 +67,10 @@ function Tree() {
         title: value
       }
     });
+
     setTreeData(newTree.treeData);
+
+    inputEl.current[treeIndex].current.value = "";
   }
 
   function removeNode(rowInfo) {
