@@ -20,12 +20,17 @@ function Tree() {
     { title: "Fish", children: [{ title: "fingerline" }] },
     { title: "Pick", children: [{ title: "Pickon" }] }
   ]);
+
   const inputEl = useRef(treeData.map(() => React.createRef()));
 
   function addNodeChild(rowInfo) {
     let { treeIndex, path } = rowInfo;
 
     const value = inputEl.current[treeIndex].current.value;
+
+    if (value === "") {
+      return;
+    }
 
     let newTree = addNodeUnderParent({
       treeData: treeData,
@@ -43,6 +48,10 @@ function Tree() {
     let { treeIndex, path } = rowInfo;
 
     const value = inputEl.current[treeIndex].current.value;
+
+    if (value === "") {
+      return;
+    }
 
     let newTree = addNodeUnderParent({
       treeData: treeData,
