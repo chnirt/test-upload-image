@@ -10,20 +10,25 @@ import SortableTree, {
   map as mapTree
 } from "react-sortable-tree";
 import "react-sortable-tree/style.css";
-import { notDeepEqual } from "assert";
 
 const seed = [
   {
+    id: "123",
     title: "Acexis",
+    isDirectory: true,
+    expanded: true,
     children: [
-      { title: "Nhan su" },
+      { id: "456", title: "Nhan su" },
       {
+        id: "789",
         title: "Kinh doanh",
+        expanded: true,
         children: [
           {
+            id: "234",
             title: "Cua hang A"
           },
-          { title: "Cua hang B" }
+          { id: "567", title: "Cua hang B" }
         ]
       }
     ]
@@ -293,6 +298,9 @@ function Tree() {
                 </button>
                 <button label="Delete" onClick={event => removeNode(rowInfo)}>
                   Remove
+                </button>
+                <button label="Alert" onClick={event => alertNodeInfo(rowInfo)}>
+                  Info
                 </button>
               </div>
             ],
