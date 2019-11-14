@@ -2,6 +2,7 @@ import React from "react";
 import "./App.css";
 import client from "./client";
 import { ApolloProvider } from "@apollo/react-hooks";
+// import TreeB from "./treeB";
 import Tree from "./tree";
 // import Upload from "./upload";
 // import Stripe from "./stripe";
@@ -13,6 +14,7 @@ function App() {
   return (
     <div>
       <ApolloProvider client={client}>
+        {/* <TreeB /> */}
         <Tree />
         {/* <Upload /> */}
         {/* <Stripe /> */}
