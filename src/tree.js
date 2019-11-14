@@ -10,25 +10,36 @@ import SortableTree, {
   map as mapTree
 } from "react-sortable-tree";
 import "react-sortable-tree/style.css";
+import { notDeepEqual } from "assert";
+
+const seed = [
+  {
+    title: "Acexis",
+    children: [
+      { title: "Nhan su" },
+      {
+        title: "Kinh doanh",
+        children: [
+          {
+            title: "Cua hang A"
+          },
+          { title: "Cua hang B" }
+        ]
+      }
+    ]
+  }
+];
 
 function Tree() {
   const [searchString, setSearchString] = useState("");
   const [searchFocusIndex, setSearchFocusIndex] = useState(0);
   const [searchFoundCount, setSearchFoundCount] = useState(null);
-  const [treeData, setTreeData] = useState([
-    {
-      title: "Chicken",
-      children: [{ title: "Egg", children: [{ title: "ASD" }] }]
-    },
-    { title: "Fish", children: [{ title: "fingerline" }] },
-    {
-      title: "Pick",
-      children: [{ title: "Pickon", children: [{ title: "ASD" }] }]
-    }
-  ]);
+  const [treeData, setTreeData] = useState(seed);
 
   const inputEl = useRef();
   // const inputEls = useRef(treeData.map(() => React.createRef()));
+
+  console.log(treeData);
 
   function createNode() {
     const value = inputEl.current.value;
@@ -44,6 +55,7 @@ function Tree() {
       expandParent: true,
       getNodeKey,
       newNode: {
+        id: "123",
         title: value
       }
     });
@@ -53,8 +65,34 @@ function Tree() {
     inputEl.current.value = "";
   }
 
+  function updateNode(rowInfo) {
+    const { node, path } = rowInfo;
+    const { children } = node;
+
+    const value = inputEl.current.value;
+
+    if (value === "") {
+      inputEl.current.focus();
+      return;
+    }
+
+    let newTree = changeNodeAtPath({
+      treeData,
+      path,
+      getNodeKey,
+      newNode: {
+        children,
+        title: value
+      }
+    });
+
+    setTreeData(newTree);
+
+    inputEl.current.value = "";
+  }
+
   function addNodeChild(rowInfo) {
-    let { treeIndex, path } = rowInfo;
+    let { path } = rowInfo;
 
     const value = inputEl.current.value;
     // const value = inputEls.current[treeIndex].current.value;
@@ -82,7 +120,7 @@ function Tree() {
   }
 
   function addNodeSibling(rowInfo) {
-    let { treeIndex, path } = rowInfo;
+    let { path } = rowInfo;
 
     const value = inputEl.current.value;
     // const value = inputEls.current[treeIndex].current.value;
@@ -110,10 +148,10 @@ function Tree() {
   }
 
   function removeNode(rowInfo) {
-    let { node, treeIndex, path } = rowInfo;
+    const { path } = rowInfo;
     setTreeData(
       removeNodeAtPath({
-        treeData: treeData,
+        treeData,
         path,
         getNodeKey
       })
@@ -238,8 +276,6 @@ function Tree() {
           generateNodeProps={rowInfo => ({
             buttons: [
               <div>
-                {/* <input ref={inputEls.current[rowInfo.treeIndex]} type="text" /> */}
-                {/* <br /> */}
                 <button
                   label="Add Sibling"
                   onClick={event => addNodeSibling(rowInfo)}
@@ -251,6 +287,9 @@ function Tree() {
                   onClick={event => addNodeChild(rowInfo)}
                 >
                   Add Child
+                </button>
+                <button label="Update" onClick={event => updateNode(rowInfo)}>
+                  Update
                 </button>
                 <button label="Delete" onClick={event => removeNode(rowInfo)}>
                   Remove
