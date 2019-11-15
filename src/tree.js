@@ -1,15 +1,17 @@
 /* eslint-disable */
-import React, { useState, useRef } from "react";
+
+import "react-sortable-tree/style.css";
+
+import React, { useRef, useState } from "react";
 import SortableTree, {
   addNodeUnderParent,
-  removeNodeAtPath,
   changeNodeAtPath,
-  getNodeAtPath,
-  toggleExpandedForAll,
   defaultSearchMethod,
-  map as mapTree
+  getNodeAtPath,
+  map as mapTree,
+  removeNodeAtPath,
+  toggleExpandedForAll
 } from "react-sortable-tree";
-import "react-sortable-tree/style.css";
 
 const seed = [
   {
@@ -18,9 +20,10 @@ const seed = [
     isDirectory: true,
     expanded: true,
     children: [
-      { id: "456", title: "Nhan su" },
+      { id: "456", title: "Nhan su", parentId: "123" },
       {
         id: "789",
+        parentId: "123",
         title: "Kinh doanh",
         expanded: true,
         children: [
@@ -269,6 +272,7 @@ function Tree() {
         <SortableTree
           treeData={treeData}
           onChange={treeData => updateTreeData(treeData)}
+          onMoveNode={data => data.node.parentId = data.nextParentNode.id}
           searchQuery={searchString}
           searchFocusOffset={searchFocusIndex}
           searchFinishCallback={matches => {
