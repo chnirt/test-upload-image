@@ -1,317 +1,444 @@
 /* eslint-disable */
-import React, { useState, useRef } from "react";
-import SortableTree, {
-  addNodeUnderParent,
-  removeNodeAtPath,
-  changeNodeAtPath,
-  getNodeAtPath,
-  toggleExpandedForAll,
-  defaultSearchMethod,
-  map as mapTree
-} from "react-sortable-tree";
-import "react-sortable-tree/style.css";
 
-const seed = [
-  {
-    id: "123",
-    title: "Acexis",
-    isDirectory: true,
-    expanded: true,
-    children: [
-      { id: "456", title: "Nhan su" },
-      {
-        id: "789",
-        title: "Kinh doanh",
-        expanded: true,
-        children: [
-          {
-            id: "234",
-            title: "Cua hang A"
-          },
-          { id: "567", title: "Cua hang B" }
-        ]
-      }
-    ]
-  }
-];
+import 'react-sortable-tree/style.css'
+
+import React, { useRef, useState, useEffect } from 'react'
+import { useQuery, useMutation } from '@apollo/react-hooks'
+import gql from 'graphql-tag'
+
+import SortableTree, {
+	addNodeUnderParent,
+	changeNodeAtPath,
+	defaultSearchMethod,
+	getNodeAtPath,
+	map as mapTree,
+	removeNodeAtPath,
+	toggleExpandedForAll
+} from 'react-sortable-tree'
+
+const GET_NODES = gql`
+	query nodes {
+		nodes {
+			_id
+			name
+			start
+			end
+			location
+			description
+		}
+	}
+`
+const GET_TREE = gql`
+	query tree {
+		tree {
+			_id
+			treeData
+		}
+	}
+`
+const CREATE_NODE = gql`
+	mutation createNode($input: CreateNodeInput!) {
+		createNode(input: $input) {
+			_id
+			parentId
+			name
+		}
+	}
+`
+const UPDATE_NODE = gql`
+	mutation updateNode($_id: ID!, $input: UpdateNodeInput!) {
+		updateNode(_id: $_id, input: $input) {
+			_id
+			parentId
+			name
+		}
+	}
+`
+const CREATE_TREE = gql`
+	mutation createTree($input: JSONObject) {
+		createTree(input: $input)
+	}
+`
+const UPDATE_TREE = gql`
+	mutation updateTree($input: JSONObject, $_id: ID) {
+		updateTree(input: $input, _id: $_id)
+	}
+`
 
 function Tree() {
-  const [searchString, setSearchString] = useState("");
-  const [searchFocusIndex, setSearchFocusIndex] = useState(0);
-  const [searchFoundCount, setSearchFoundCount] = useState(null);
-  const [treeData, setTreeData] = useState(seed);
+	const [searchString, setSearchString] = useState('')
+	const [searchFocusIndex, setSearchFocusIndex] = useState(0)
+	const [searchFoundCount, setSearchFoundCount] = useState(null)
+	const [treeData, setTreeData] = useState([])
+	const [tree, setTree] = useState()
+	const [category, setCategory] = useState('COMPANY')
+	const [createTree] = useMutation(CREATE_TREE)
+	const [updateTree] = useMutation(UPDATE_TREE)
+	const [createNewNode] = useMutation(CREATE_NODE)
+	const [updateNode] = useMutation(UPDATE_NODE)
+	const inputEl = useRef()
+	// const inputEls = useRef(treeData.map(() => React.createRef()));
+	const treeQuery = useQuery(GET_TREE)
+	useEffect(() => {
+		const { loading, data: treeDataQuery } = treeQuery
+		if (!loading) {
+			setTreeData([treeDataQuery.tree.treeData])
+			setTree(treeDataQuery.tree)
+		}
+	}, [treeQuery])
+	function createNode() {
+		const value = inputEl.current.value
 
-  const inputEl = useRef();
-  // const inputEls = useRef(treeData.map(() => React.createRef()));
+		// if (value === '') {
+		// 	inputEl.current.focus()
+		// 	return
+		// }
 
-  console.log(treeData);
+		// let newTree = addNodeUnderParent({
+		// 	treeData: treeData,
+		// 	parentKey: null,
+		// 	expandParent: true,
+		// 	getNodeKey,
+		// 	newNode: {
+		// 		title: value
+		// 	}
+		// })
 
-  function createNode() {
-    const value = inputEl.current.value;
+		// setTreeData(newTree.treeData)
 
-    if (value === "") {
-      inputEl.current.focus();
-      return;
-    }
+		// inputEl.current.value = ''
+	}
 
-    let newTree = addNodeUnderParent({
-      treeData: treeData,
-      parentKey: null,
-      expandParent: true,
-      getNodeKey,
-      newNode: {
-        id: "123",
-        title: value
-      }
-    });
+	function handleUpdateNode(rowInfo) {
+		const { node, path } = rowInfo
+		const { children } = node
 
-    setTreeData(newTree.treeData);
+		const value = inputEl.current.value
 
-    inputEl.current.value = "";
-  }
+		if (value === '') {
+			inputEl.current.focus()
+			return
+		}
 
-  function updateNode(rowInfo) {
-    const { node, path } = rowInfo;
-    const { children } = node;
+		let newTree = changeNodeAtPath({
+			treeData,
+			path,
+			getNodeKey,
+			newNode: {
+				children,
+				title: value
+			}
+		})
 
-    const value = inputEl.current.value;
+		setTreeData(newTree)
 
-    if (value === "") {
-      inputEl.current.focus();
-      return;
-    }
+		inputEl.current.value = ''
+	}
 
-    let newTree = changeNodeAtPath({
-      treeData,
-      path,
-      getNodeKey,
-      newNode: {
-        children,
-        title: value
-      }
-    });
+	async function addNodeChild(rowInfo) {
+		let { path, node } = rowInfo
+		const parentId = node.id
+		let newNodeId = ''
+		const { value: name } = inputEl.current
+		// const value = inputEls.current[treeIndex].current.value;
+		if (name === '') {
+			inputEl.current.focus()
+			// inputEls.current[treeIndex].current.focus();
+			return
+		}
+		// create new node
+		const newNode = {
+			parentId,
+			name,
+			category
+		}
+		await createNewNode({
+			variables: {
+				input: newNode
+			}
+		})
+			.then(res => {
+				// console.log(res.data.createNode._id)
+				newNodeId = res.data.createNode._id
+			})
+			.catch(err => {
+				console.log(err)
+			})
+		let newTree = addNodeUnderParent({
+			treeData: treeData,
+			parentKey: path[path.length - 1],
+			expandParent: true,
+			getNodeKey,
+			newNode: {
+				_id: newNodeId,
+				title: name,
+				parentId
+			}
+		})
 
-    setTreeData(newTree);
+		updateTree({
+			variables: {
+				input: newTree.treeData[0],
+				_id: tree._id
+			},
+			refetchQueries: [
+				{
+					query: GET_TREE
+				}
+			]
+		})
+			.then(res => {
+				console.log(res)
+			})
+			.catch(err => {
+				console.log(err)
+			})
+		setTreeData(newTree.treeData)
+		console.log(newTree.treeData)
 
-    inputEl.current.value = "";
-  }
+		inputEl.current.value = ''
+		// inputEls.current[treeIndex].current.value = "";
+	}
 
-  function addNodeChild(rowInfo) {
-    let { path } = rowInfo;
+	function addNodeSibling(rowInfo) {
+		let { path } = rowInfo
 
-    const value = inputEl.current.value;
-    // const value = inputEls.current[treeIndex].current.value;
+		const value = inputEl.current.value
+		// const value = inputEls.current[treeIndex].current.value;
 
-    if (value === "") {
-      inputEl.current.focus();
-      // inputEls.current[treeIndex].current.focus();
-      return;
-    }
+		if (value === '') {
+			inputEl.current.focus()
+			// inputEls.current[treeIndex].current.focus();
+			return
+		}
 
-    let newTree = addNodeUnderParent({
-      treeData: treeData,
-      parentKey: path[path.length - 1],
-      expandParent: true,
-      getNodeKey,
-      newNode: {
-        title: value
-      }
-    });
+		let newTree = addNodeUnderParent({
+			treeData: treeData,
+			parentKey: path[path.length - 2],
+			expandParent: true,
+			getNodeKey,
+			newNode: {
+				title: value
+			}
+		})
 
-    setTreeData(newTree.treeData);
+		setTreeData(newTree.treeData)
 
-    inputEl.current.value = "";
-    // inputEls.current[treeIndex].current.value = "";
-  }
+		inputEl.current.value = ''
+		// inputEls.current[treeIndex].current.value = "";
+	}
 
-  function addNodeSibling(rowInfo) {
-    let { path } = rowInfo;
+	const handleMoveNode = data => {
+		// data.node.parentId = data.nextParentNode.id
+		console.log(data)
+		const { node, nextParentNode, treeData: newTreeData } = data
+		const nodeUpdated = {
+			parentId: nextParentNode.id
+		}
+    console.log('TCL: Tree -> nodeUpdated', nodeUpdated)
+		updateNode({
+			variables: {
+				_id: node._id,
+				input: nodeUpdated
+			}
+		})
+			.then(res => {
+				console.log(res)
+			})
+			.catch(err => {
+				console.log(err)
+			})
+			updateTree({
+				variables: {
+					input: newTreeData[0],
+					_id: tree._id
+				},
+				refetchQueries: [
+					{
+						query: GET_TREE
+					}
+				]
+			})
+				.then(res => {
+					console.log(res)
+				})
+				.catch(err => {
+					console.log(err)
+				})
+			setTreeData(newTreeData)
+	}
 
-    const value = inputEl.current.value;
-    // const value = inputEls.current[treeIndex].current.value;
+	function removeNode(rowInfo) {
+		const { path } = rowInfo
+		setTreeData(
+			removeNodeAtPath({
+				treeData,
+				path,
+				getNodeKey
+			})
+		)
+	}
 
-    if (value === "") {
-      inputEl.current.focus();
-      // inputEls.current[treeIndex].current.focus();
-      return;
-    }
+	function updateTreeData(treeData) {
+		setTreeData(treeData)
+	}
 
-    let newTree = addNodeUnderParent({
-      treeData: treeData,
-      parentKey: path[path.length - 2],
-      expandParent: true,
-      getNodeKey,
-      newNode: {
-        title: value
-      }
-    });
+	function expand(expanded) {
+		setTreeData(
+			toggleExpandedForAll({
+				treeData,
+				expanded
+			})
+		)
+	}
 
-    setTreeData(newTree.treeData);
+	function expandAll() {
+		expand(true)
+	}
 
-    inputEl.current.value = "";
-    // inputEls.current[treeIndex].current.value = "";
-  }
+	function collapseAll() {
+		expand(false)
+	}
 
-  function removeNode(rowInfo) {
-    const { path } = rowInfo;
-    setTreeData(
-      removeNodeAtPath({
-        treeData,
-        path,
-        getNodeKey
-      })
-    );
-  }
+	const alertNodeInfo = ({ node, path, treeIndex }) => {
+		const objectString = Object.keys(node)
+			.map(k => (k === 'children' ? 'children: Array' : `${k}: '${node[k]}'`))
+			.join(',\n   ')
 
-  function updateTreeData(treeData) {
-    setTreeData(treeData);
-  }
+		global.alert(
+			'Info passed to the icon and button generators:\n\n' +
+				`node: {\n   ${objectString}\n},\n` +
+				`path: [${path.join(', ')}],\n` +
+				`treeIndex: ${treeIndex}`
+		)
+	}
 
-  function expand(expanded) {
-    setTreeData(
-      toggleExpandedForAll({
-        treeData,
-        expanded
-      })
-    );
-  }
+	const selectPrevMatch = () => {
+		setSearchFocusIndex(
+			searchFocusIndex !== null
+				? (searchFoundCount + searchFocusIndex - 1) % searchFoundCount
+				: searchFoundCount - 1
+		)
+	}
 
-  function expandAll() {
-    expand(true);
-  }
+	const selectNextMatch = () => {
+		setSearchFocusIndex(
+			searchFocusIndex !== null ? (searchFocusIndex + 1) % searchFoundCount : 0
+		)
+	}
 
-  function collapseAll() {
-    expand(false);
-  }
+	const getNodeKey = ({ treeIndex }) => treeIndex
 
-  const alertNodeInfo = ({ node, path, treeIndex }) => {
-    const objectString = Object.keys(node)
-      .map(k => (k === "children" ? "children: Array" : `${k}: '${node[k]}'`))
-      .join(",\n   ");
+	return (
+		<div>
+			<div style={{ flex: '0 0 auto', padding: '0 15px' }}>
+				<h3>Full Node Drag Theme</h3>
+				<div>
+					<input ref={inputEl} type="text" />
+					<select onChange={e => setCategory(e.target.value)}>
+						<option value="COMPANY">COMPANY</option>
+						<option value="DEPARTMENT">DEPARTMENT</option>
+						<option value="CITY">CITY</option>
+						<option value="STORE">STORE</option>
+						<option value="POSITION">POSITION</option>
+						<option value="JOB">JOB</option>
+					</select>
+				</div>
+				<br />
+				<button onClick={() => createNode()}>Create Node</button>
+				<br />
+				<button onClick={expandAll}>Expand All</button>
+				<button onClick={collapseAll}>Collapse All</button>
+				&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+				<form
+					style={{ display: 'inline-block' }}
+					onSubmit={event => {
+						event.preventDefault()
+					}}
+				>
+					<label htmlFor="find-box">
+						Search:&nbsp;
+						<input
+							id="find-box"
+							type="text"
+							value={searchString}
+							onChange={event => setSearchString(event.target.value)}
+						/>
+					</label>
 
-    global.alert(
-      "Info passed to the icon and button generators:\n\n" +
-        `node: {\n   ${objectString}\n},\n` +
-        `path: [${path.join(", ")}],\n` +
-        `treeIndex: ${treeIndex}`
-    );
-  };
+					<button
+						type="button"
+						disabled={!searchFoundCount}
+						onClick={selectPrevMatch}
+					>
+						&lt;
+					</button>
 
-  const selectPrevMatch = () => {
-    setSearchFocusIndex(
-      searchFocusIndex !== null
-        ? (searchFoundCount + searchFocusIndex - 1) % searchFoundCount
-        : searchFoundCount - 1
-    );
-  };
+					<button
+						type="submit"
+						disabled={!searchFoundCount}
+						onClick={selectNextMatch}
+					>
+						&gt;
+					</button>
 
-  const selectNextMatch = () => {
-    setSearchFocusIndex(
-      searchFocusIndex !== null ? (searchFocusIndex + 1) % searchFoundCount : 0
-    );
-  };
+					<span>
+						&nbsp;
+						{searchFoundCount > 0 ? searchFocusIndex + 1 : 0}
+						&nbsp;/&nbsp;
+						{searchFoundCount || 0}
+					</span>
+				</form>
+			</div>
 
-  const getNodeKey = ({ treeIndex }) => treeIndex;
-
-  return (
-    <div>
-      <div style={{ flex: "0 0 auto", padding: "0 15px" }}>
-        <h3>Full Node Drag Theme</h3>
-        <input ref={inputEl} type="text" />
-        <br />
-        <button onClick={createNode}>Create Node</button>
-        <br />
-        <button onClick={expandAll}>Expand All</button>
-        <button onClick={collapseAll}>Collapse All</button>
-        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-        <form
-          style={{ display: "inline-block" }}
-          onSubmit={event => {
-            event.preventDefault();
-          }}
-        >
-          <label htmlFor="find-box">
-            Search:&nbsp;
-            <input
-              id="find-box"
-              type="text"
-              value={searchString}
-              onChange={event => setSearchString(event.target.value)}
-            />
-          </label>
-
-          <button
-            type="button"
-            disabled={!searchFoundCount}
-            onClick={selectPrevMatch}
-          >
-            &lt;
-          </button>
-
-          <button
-            type="submit"
-            disabled={!searchFoundCount}
-            onClick={selectNextMatch}
-          >
-            &gt;
-          </button>
-
-          <span>
-            &nbsp;
-            {searchFoundCount > 0 ? searchFocusIndex + 1 : 0}
-            &nbsp;/&nbsp;
-            {searchFoundCount || 0}
-          </span>
-        </form>
-      </div>
-
-      <div style={{ height: "100vh" }}>
-        <SortableTree
-          treeData={treeData}
-          onChange={treeData => updateTreeData(treeData)}
-          searchQuery={searchString}
-          searchFocusOffset={searchFocusIndex}
-          searchFinishCallback={matches => {
-            setSearchFoundCount(matches.length);
-            setSearchFocusIndex(
-              matches.length > 0 ? searchFocusIndex % matches.length : 0
-            );
-          }}
-          canDrag={({ node }) => !node.dragDisabled}
-          generateNodeProps={rowInfo => ({
-            buttons: [
-              <div>
-                <button
-                  label="Add Sibling"
-                  onClick={event => addNodeSibling(rowInfo)}
-                >
-                  Add Sibling
-                </button>
-                <button
-                  label="Add Child"
-                  onClick={event => addNodeChild(rowInfo)}
-                >
-                  Add Child
-                </button>
-                <button label="Update" onClick={event => updateNode(rowInfo)}>
-                  Update
-                </button>
-                <button label="Delete" onClick={event => removeNode(rowInfo)}>
-                  Remove
-                </button>
-                <button label="Alert" onClick={event => alertNodeInfo(rowInfo)}>
-                  Info
-                </button>
-              </div>
-            ],
-            style: {
-              height: "50px"
-            }
-          })}
-        />
-      </div>
-    </div>
-  );
+			<div style={{ height: '100vh' }}>
+				<SortableTree
+					treeData={treeData}
+					onChange={treeData => updateTreeData(treeData)}
+					onMoveNode={data => handleMoveNode(data)}
+					searchQuery={searchString}
+					searchFocusOffset={searchFocusIndex}
+					searchFinishCallback={matches => {
+						setSearchFoundCount(matches.length)
+						setSearchFocusIndex(
+							matches.length > 0 ? searchFocusIndex % matches.length : 0
+						)
+					}}
+					canDrag={({ node }) => !node.dragDisabled}
+					generateNodeProps={rowInfo => ({
+						buttons: [
+							<div>
+								<button
+									label="Add Sibling"
+									onClick={event => addNodeSibling(rowInfo)}
+								>
+									Add Sibling
+								</button>
+								<button
+									label="Add Child"
+									onClick={event => addNodeChild(rowInfo)}
+								>
+									Add Child
+								</button>
+								<button label="Update" onClick={event => handleUpdateNode(rowInfo)}>
+									Update
+								</button>
+								<button label="Delete" onClick={event => removeNode(rowInfo)}>
+									Remove
+								</button>
+								<button label="Alert" onClick={event => alertNodeInfo(rowInfo)}>
+									Info
+								</button>
+							</div>
+						],
+						style: {
+							height: '50px'
+						}
+					})}
+				/>
+			</div>
+		</div>
+	)
 }
 
-export default Tree;
+export default Tree

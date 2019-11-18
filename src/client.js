@@ -8,7 +8,7 @@ import { setContext } from "apollo-link-context";
 import { ApolloClient } from "apollo-client";
 import { InMemoryCache } from "apollo-cache-inmemory";
 
-const urn = "devcloud4.digihcs.com:14047/graphql";
+const urn = "devcloud4.digihcs.com:14088/graphql";
 
 const httpLink = new HttpLink({
   uri: `http://${urn}`
