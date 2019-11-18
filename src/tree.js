@@ -54,6 +54,11 @@ const UPDATE_NODE = gql`
 		}
 	}
 `
+const DELETE_NODE = gql`
+	mutation deleteNode($_id: ID!) {
+		deleteNode(_id: $_id)
+	}
+`
 const CREATE_TREE = gql`
 	mutation createTree($input: JSONObject) {
 		createTree(input: $input)
@@ -65,160 +70,265 @@ const UPDATE_TREE = gql`
 	}
 `
 
+const sample = {
+	_id: 'bf9c20b0-0780-11ea-b1bc-9127c165b7f6',
+	treeData: {
+		id: '2e5cae40-0752-11ea-a4de-338b153089b3',
+		title: 'Acexis',
+		isDirectory: true,
+		expanded: true,
+		children: [
+			{
+				id: '7f75a950-09cb-11ea-adc7-0d095a1d54c1',
+				title: 'Ban giam doc',
+				parentId: '2e5cae40-0752-11ea-a4de-338b153089b3'
+			},
+			{
+				id: '6b9b6440-0752-11ea-a4de-338b153089b3',
+				title: 'Nhan su',
+				parentId: '2e5cae40-0752-11ea-a4de-338b153089b3',
+				expanded: true,
+				children: []
+			},
+			{
+				id: '71ec84a0-0752-11ea-a4de-338b153089b3',
+				parentId: '2e5cae40-0752-11ea-a4de-338b153089b3',
+				title: 'Kinh doanh',
+				expanded: true,
+				children: [
+					{
+						id: '65c55560-0754-11ea-a4de-338b153089b3',
+						title: 'Cua hang A',
+						expanded: true,
+						children: []
+					},
+					{
+						id: '9af76510-09d5-11ea-adc7-0d095a1d54c1',
+						title: 'asas',
+						parentId: '65c55560-0754-11ea-a4de-338b153089b3'
+					},
+					{
+						id: '6a132bb0-0754-11ea-a4de-338b153089b3',
+						title: 'Cua hang B',
+						expanded: true,
+						children: [
+							{
+								id: '0adee270-09d3-11ea-adc7-0d095a1d54c1',
+								title: 'aaa',
+								parentId: '2e5cae40-0752-11ea-a4de-338b153089b3',
+								expanded: true
+							},
+							{
+								id: '23d9be80-09d8-11ea-adc7-0d095a1d54c1',
+								parentId: '71ec84a0-0752-11ea-a4de-338b153089b3',
+								title: 'ewq'
+							}
+						]
+					}
+				]
+			}
+		]
+	}
+}
+
 function Tree() {
 	const [searchString, setSearchString] = useState('')
 	const [searchFocusIndex, setSearchFocusIndex] = useState(0)
 	const [searchFoundCount, setSearchFoundCount] = useState(null)
 	const [treeData, setTreeData] = useState([])
-	const [tree, setTree] = useState()
+	const [tree, setTree] = useState({})
 	const [category, setCategory] = useState('COMPANY')
+
+	const treeQuery = useQuery(GET_TREE)
 	const [createTree] = useMutation(CREATE_TREE)
 	const [updateTree] = useMutation(UPDATE_TREE)
+
 	const [createNewNode] = useMutation(CREATE_NODE)
 	const [updateNode] = useMutation(UPDATE_NODE)
+	const [deleteNode] = useMutation(DELETE_NODE)
 	const inputEl = useRef()
 	// const inputEls = useRef(treeData.map(() => React.createRef()));
-	const treeQuery = useQuery(GET_TREE)
+
+	console.log(treeQuery)
+
 	useEffect(() => {
-		const { loading, data: treeDataQuery } = treeQuery
-		if (!loading) {
-			setTreeData([treeDataQuery.tree.treeData])
-			setTree(treeDataQuery.tree)
-		}
+		setTreeData(treeQuery.data ? [treeQuery.data.tree.treeData] : [])
+		setTree(treeQuery.tree)
 	}, [treeQuery])
 	function createNode() {
-		const value = inputEl.current.value
+		const name = inputEl.current.value
 
-		// if (value === '') {
-		// 	inputEl.current.focus()
-		// 	return
-		// }
-
-		// let newTree = addNodeUnderParent({
-		// 	treeData: treeData,
-		// 	parentKey: null,
-		// 	expandParent: true,
-		// 	getNodeKey,
-		// 	newNode: {
-		// 		title: value
-		// 	}
-		// })
-
-		// setTreeData(newTree.treeData)
-
-		// inputEl.current.value = ''
-	}
-
-	function handleUpdateNode(rowInfo) {
-		const { node, path } = rowInfo
-		const { children } = node
-
-		const value = inputEl.current.value
-
-		if (value === '') {
+		if (name === '') {
 			inputEl.current.focus()
 			return
 		}
 
-		let newTree = changeNodeAtPath({
-			treeData,
-			path,
-			getNodeKey,
-			newNode: {
-				children,
-				title: value
+		// setTreeData(newTree.treeData)
+
+		// inputEl.current.value = ''
+		createNewNode({
+			variables: {
+				input: {
+					parentId: null,
+					name,
+					category
+				}
 			}
 		})
+			.then(res => {
+				const newNodeId = res.data.createNode._id
 
-		setTreeData(newTree)
+				const newTree = addNodeUnderParent({
+					treeData: treeData,
+					parentKey: null,
+					expandParent: true,
+					getNodeKey,
+					newNode: {
+						id: newNodeId,
+						title: name,
+						parentId: null
+					}
+				})
 
-		inputEl.current.value = ''
+				createTree({
+					variables: {
+						input: newTree.treeData[0]
+					}
+				})
+					.then(res => {
+						setTreeData(newTree.treeData)
+						inputEl.current.value = ''
+					})
+					.catch(err => {
+						console.log(err)
+					})
+			})
+			.catch(err => {
+				console.log(err)
+			})
+	}
+
+	function handleUpdateNode(rowInfo) {
+		const { node, path, parentNode } = rowInfo
+		const { id, parentId } = node
+
+		const { value: name } = inputEl.current
+
+		if (name === '') {
+			inputEl.current.focus()
+			return
+		}
+
+		updateNode({
+			variables: {
+				_id: id,
+				input: {
+					parentId: parentNode.id,
+					name
+				}
+			}
+		})
+			.then(res => {
+				const newTree = changeNodeAtPath({
+					treeData,
+					path,
+					getNodeKey,
+					newNode: {
+						id,
+						parentId,
+						title: name
+					}
+				})
+				updateTree({
+					variables: {
+						input: newTree[0],
+						_id: tree._id
+					}
+				})
+					.then(res => {
+						setTreeData(newTree)
+						inputEl.current.value = ''
+					})
+					.catch(err => {
+						console.log(err)
+					})
+			})
+			.catch(err => {
+				console.log(err)
+			})
 	}
 
 	async function addNodeChild(rowInfo) {
 		let { path, node } = rowInfo
 		const parentId = node.id
-		let newNodeId = ''
-		const { value: name } = inputEl.current
+		const name = inputEl.current.value
+		if (name === '') {
+			inputEl.current.focus()
+			return
+		}
+
+		createNewNode({
+			variables: {
+				input: {
+					parentId,
+					name,
+					category
+				}
+			}
+		})
+			.then(res => {
+				const newNodeId = res.data.createNode._id
+
+				const newTree = addNodeUnderParent({
+					treeData: treeData,
+					parentKey: path[path.length - 1],
+					expandParent: true,
+					getNodeKey,
+					newNode: {
+						id: newNodeId,
+						title: name,
+						parentId
+					}
+				})
+
+				updateTree({
+					variables: {
+						input: newTree.treeData[0],
+						_id: tree._id
+					}
+				})
+					.then(res => {
+						setTreeData(newTree.treeData)
+						inputEl.current.value = ''
+					})
+					.catch(err => {
+						console.log(err)
+					})
+			})
+			.catch(err => {
+				console.log(err)
+			})
+	}
+
+	function addNodeSibling(rowInfo) {
+		const { path } = rowInfo
+
+		const name = inputEl.current.value
 		// const value = inputEls.current[treeIndex].current.value;
+
 		if (name === '') {
 			inputEl.current.focus()
 			// inputEls.current[treeIndex].current.focus();
 			return
 		}
-		// create new node
-		const newNode = {
-			parentId,
-			name,
-			category
-		}
-		await createNewNode({
-			variables: {
-				input: newNode
-			}
-		})
-			.then(res => {
-				// console.log(res.data.createNode._id)
-				newNodeId = res.data.createNode._id
-			})
-			.catch(err => {
-				console.log(err)
-			})
-		let newTree = addNodeUnderParent({
-			treeData: treeData,
-			parentKey: path[path.length - 1],
-			expandParent: true,
-			getNodeKey,
-			newNode: {
-				_id: newNodeId,
-				title: name,
-				parentId
-			}
-		})
 
-		updateTree({
-			variables: {
-				input: newTree.treeData[0],
-				_id: tree._id
-			},
-			refetchQueries: [
-				{
-					query: GET_TREE
-				}
-			]
-		})
-			.then(res => {
-				console.log(res)
-			})
-			.catch(err => {
-				console.log(err)
-			})
-		setTreeData(newTree.treeData)
-		console.log(newTree.treeData)
-
-		inputEl.current.value = ''
-		// inputEls.current[treeIndex].current.value = "";
-	}
-
-	function addNodeSibling(rowInfo) {
-		let { path } = rowInfo
-
-		const value = inputEl.current.value
-		// const value = inputEls.current[treeIndex].current.value;
-
-		if (value === '') {
-			inputEl.current.focus()
-			// inputEls.current[treeIndex].current.focus();
-			return
-		}
-
-		let newTree = addNodeUnderParent({
+		const newTree = addNodeUnderParent({
 			treeData: treeData,
 			parentKey: path[path.length - 2],
 			expandParent: true,
 			getNodeKey,
 			newNode: {
-				title: value
+				title: name
 			}
 		})
 
@@ -229,54 +339,65 @@ function Tree() {
 	}
 
 	const handleMoveNode = data => {
-		// data.node.parentId = data.nextParentNode.id
-		console.log(data)
 		const { node, nextParentNode, treeData: newTreeData } = data
-		const nodeUpdated = {
-			parentId: nextParentNode.id
-		}
-    console.log('TCL: Tree -> nodeUpdated', nodeUpdated)
 		updateNode({
 			variables: {
-				_id: node._id,
-				input: nodeUpdated
+				_id: node.id,
+				input: {
+					parentId: nextParentNode.id
+				}
 			}
 		})
 			.then(res => {
-				console.log(res)
+				updateTree({
+					variables: {
+						input: newTreeData[0],
+						_id: tree._id
+					}
+				})
+					.then(res => {
+						setTreeData(newTreeData)
+					})
+					.catch(err => {
+						console.log(err)
+					})
 			})
 			.catch(err => {
 				console.log(err)
 			})
-			updateTree({
-				variables: {
-					input: newTreeData[0],
-					_id: tree._id
-				},
-				refetchQueries: [
-					{
-						query: GET_TREE
-					}
-				]
-			})
-				.then(res => {
-					console.log(res)
-				})
-				.catch(err => {
-					console.log(err)
-				})
-			setTreeData(newTreeData)
 	}
 
 	function removeNode(rowInfo) {
-		const { path } = rowInfo
-		setTreeData(
-			removeNodeAtPath({
-				treeData,
-				path,
-				getNodeKey
+		const { path, node } = rowInfo
+
+		const newTreeData = removeNodeAtPath({
+			treeData,
+			path,
+			getNodeKey
+		})
+		deleteNode({
+			variables: {
+				_id: node._id
+			}
+		})
+			.then(res => {
+				updateTree({
+					variables: {
+						input: newTreeData[0],
+						_id: tree._id
+					}
+				})
+					.then(res => {
+						console.log(res)
+						setTreeData(newTreeData)
+					})
+					.catch(err => {
+						console.log(err)
+					})
 			})
-		)
+			.catch(err => {
+				console.log(err)
+			})
 	}
 
 	function updateTreeData(treeData) {
@@ -395,7 +516,7 @@ function Tree() {
 				<SortableTree
 					treeData={treeData}
 					onChange={treeData => updateTreeData(treeData)}
-					onMoveNode={data => handleMoveNode(data)}
+					onMoveNode={rowInfo => handleMoveNode(rowInfo)}
 					searchQuery={searchString}
 					searchFocusOffset={searchFocusIndex}
 					searchFinishCallback={matches => {
@@ -420,7 +541,10 @@ function Tree() {
 								>
 									Add Child
 								</button>
-								<button label="Update" onClick={event => handleUpdateNode(rowInfo)}>
+								<button
+									label="Update"
+									onClick={event => handleUpdateNode(rowInfo)}
+								>
 									Update
 								</button>
 								<button label="Delete" onClick={event => removeNode(rowInfo)}>
