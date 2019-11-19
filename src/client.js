@@ -8,7 +8,10 @@ import { setContext } from 'apollo-link-context'
 import { ApolloClient } from 'apollo-client'
 import { InMemoryCache } from 'apollo-cache-inmemory'
 
-const urn = 'devcloud4.digihcs.com:14088/graphql'
+const urn = 'devcloud4.digihcs.com:14047/graphql'
+
+const token =
+	'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJfaWQiOiJiMDA1M2E1MC0wYTljLTExZWEtODRkOS0yYjE0M2U5M2JiOWUiLCJpYXQiOjE1NzQxNTAzNzYsImV4cCI6MTU3Njc0MjM3NiwiYXVkIjoiaHR0cDovL2NobmlydC5naXRodWIuaW8iLCJpc3MiOiJDaG5pcnQgY29ycCIsInN1YiI6InRyaW5oY2hpbi5pbm5vc0BnbWFpbC5jb20ifQ.YGbiWVGJTfFD-PyKUjjaX_JXcNkiBQ9AzjWBa7hiL5A'
 
 const httpLink = new HttpLink({
 	uri: `http://${urn}`
@@ -20,8 +23,7 @@ const wsLink = new WebSocketLink({
 		// reconnect: true,
 		// lazy: true,
 		connectionParams: () => ({
-			'access-token':
-				'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3N1ZXIiOiJodHRwOi8vY2huaXJ0LmRldi5pbyIsInN1YmplY3QiOiJmZmJkZDg5MC1mOGJkLTExZTktOTgwNi04YjkxNGQ2MjNhZTkiLCJpYXQiOjE1NzI0MjY5MjIsImV4cCI6MTU3NTAxODkyMn0.I5fHO73Uy1k8aBVwOYjgUrhjbfb-F5J2HamaCswkvHE'
+			'access-token': token
 		})
 	}
 })
@@ -71,8 +73,7 @@ const authLink = setContext((_, { headers }) => {
 	return {
 		headers: {
 			...headers,
-			'access-token':
-				'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3N1ZXIiOiJodHRwOi8vY2huaXJ0LmRldi5pbyIsInN1YmplY3QiOiJmZmJkZDg5MC1mOGJkLTExZTktOTgwNi04YjkxNGQ2MjNhZTkiLCJpYXQiOjE1NzI0MjY5MjIsImV4cCI6MTU3NTAxODkyMn0.I5fHO73Uy1k8aBVwOYjgUrhjbfb-F5J2HamaCswkvHE'
+			'access-token': token
 		}
 	}
 })

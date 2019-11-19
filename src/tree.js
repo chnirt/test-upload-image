@@ -27,6 +27,18 @@ const GET_NODES = gql`
 		}
 	}
 `
+
+const GET_NODES_BY_Id = gql`
+	query nodesById($_id: ID!) {
+		nodesById(_id: $_id) {
+			_id
+			parentId
+			name
+			category
+		}
+	}
+`
+
 const GET_TREE = gql`
 	query tree {
 		tree {
@@ -76,8 +88,15 @@ function Tree() {
 	// const [treeData, setTreeData] = useState([])
 	const [tree, setTree] = useState()
 	const [category, setCategory] = useState('COMPANY')
+	const [nodeId, setNodeId] = useState('')
 
 	const treeQuery = useQuery(GET_TREE)
+	const nodesByIdQuery = useQuery(GET_NODES_BY_Id, {
+		skip: !nodeId,
+		variables: {
+			_id: nodeId
+		}
+	})
 	const [createTree] = useMutation(CREATE_TREE)
 	const [updateTree] = useMutation(UPDATE_TREE)
 
@@ -87,12 +106,15 @@ function Tree() {
 	const inputEl = useRef()
 	// const inputEls = useRef(treeData.map(() => React.createRef()));
 
+	console.log(nodesByIdQuery && nodesByIdQuery)
+
 	useEffect(() => {
 		const { loading, data } = treeQuery
 		if (!loading) {
 			setTree(data && data.tree)
 		}
 	}, [treeQuery])
+
 	function handleCreateNode() {
 		const name = inputEl.current.value
 
@@ -273,23 +295,25 @@ function Tree() {
 					}
 				})
 
-				updateTree({
-					variables: {
-						input: newTree.treeData,
-						_id: tree._id
-					}
-				})
-					.then(res => {
-						const updatedTree = {
-							_id: tree._id,
-							treeData: newTree.treeData
+				if (category !== 'POSITION') {
+					updateTree({
+						variables: {
+							input: newTree.treeData,
+							_id: tree._id
 						}
-						setTree(updatedTree)
-						inputEl.current.value = ''
 					})
-					.catch(err => {
-						console.log(err)
-					})
+						.then(res => {
+							const updatedTree = {
+								_id: tree._id,
+								treeData: newTree.treeData
+							}
+							setTree(updatedTree)
+							inputEl.current.value = ''
+						})
+						.catch(err => {
+							console.log(err)
+						})
+				}
 			})
 			.catch(err => {
 				console.log(err)
@@ -415,16 +439,19 @@ function Tree() {
 	}
 
 	const alertNodeInfo = ({ node, path, treeIndex }) => {
-		const objectString = Object.keys(node)
-			.map(k => (k === 'children' ? 'children: Array' : `${k}: '${node[k]}'`))
-			.join(',\n   ')
+		setNodeId(node.id)
+		// const objectString = Object.keys(node)
+		// 	.map(k => (k === 'children' ? 'children: Array' : `${k}: '${node[k]}'`))
+		// 	.join(',\n   ')
 
-		global.alert(
-			'Info passed to the icon and button generators:\n\n' +
-				`node: {\n   ${objectString}\n},\n` +
-				`path: [${path.join(', ')}],\n` +
-				`treeIndex: ${treeIndex}`
-		)
+		// global.alert(
+		// 	'Info passed to the icon and button generators:\n\n' +
+		// 		// `node: {\n   ${objectString}\n},\n` +
+		// 		// `path: [${path.join(', ')}],\n` +
+		// 		// `treeIndex: ${treeIndex}` +
+		// 		`nodesByIdQuery: ${nodesByIdQuery.data &&
+		// 			nodesByIdQuery.data.nodesById}`
+		// )
 	}
 
 	const selectPrevMatch = () => {
@@ -464,6 +491,11 @@ function Tree() {
 				<button onClick={expandAll}>Expand All</button>
 				<button onClick={collapseAll}>Collapse All</button>
 				&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+				<h3>Children node</h3>
+				{nodesByIdQuery.data &&
+					nodesByIdQuery.data.nodesById.map((item, i) => (
+						<h5 key={i}>{item.name}</h5>
+					))}
 				<form
 					style={{ display: 'inline-block' }}
 					onSubmit={event => {
