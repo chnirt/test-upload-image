@@ -1,5 +1,4 @@
 /* eslint-disable */
-
 import 'react-sortable-tree/style.css'
 
 import React, { useRef, useState, useEffect } from 'react'
@@ -60,83 +59,22 @@ const DELETE_NODE = gql`
 	}
 `
 const CREATE_TREE = gql`
-	mutation createTree($input: JSONObject) {
+	mutation createTree($input: JSON) {
 		createTree(input: $input)
 	}
 `
 const UPDATE_TREE = gql`
-	mutation updateTree($input: JSONObject, $_id: ID) {
+	mutation updateTree($input: JSON, $_id: ID) {
 		updateTree(input: $input, _id: $_id)
 	}
 `
-
-const sample = {
-	_id: 'bf9c20b0-0780-11ea-b1bc-9127c165b7f6',
-	treeData: {
-		id: '2e5cae40-0752-11ea-a4de-338b153089b3',
-		title: 'Acexis',
-		isDirectory: true,
-		expanded: true,
-		children: [
-			{
-				id: '7f75a950-09cb-11ea-adc7-0d095a1d54c1',
-				title: 'Ban giam doc',
-				parentId: '2e5cae40-0752-11ea-a4de-338b153089b3'
-			},
-			{
-				id: '6b9b6440-0752-11ea-a4de-338b153089b3',
-				title: 'Nhan su',
-				parentId: '2e5cae40-0752-11ea-a4de-338b153089b3',
-				expanded: true,
-				children: []
-			},
-			{
-				id: '71ec84a0-0752-11ea-a4de-338b153089b3',
-				parentId: '2e5cae40-0752-11ea-a4de-338b153089b3',
-				title: 'Kinh doanh',
-				expanded: true,
-				children: [
-					{
-						id: '65c55560-0754-11ea-a4de-338b153089b3',
-						title: 'Cua hang A',
-						expanded: true,
-						children: []
-					},
-					{
-						id: '9af76510-09d5-11ea-adc7-0d095a1d54c1',
-						title: 'asas',
-						parentId: '65c55560-0754-11ea-a4de-338b153089b3'
-					},
-					{
-						id: '6a132bb0-0754-11ea-a4de-338b153089b3',
-						title: 'Cua hang B',
-						expanded: true,
-						children: [
-							{
-								id: '0adee270-09d3-11ea-adc7-0d095a1d54c1',
-								title: 'aaa',
-								parentId: '2e5cae40-0752-11ea-a4de-338b153089b3',
-								expanded: true
-							},
-							{
-								id: '23d9be80-09d8-11ea-adc7-0d095a1d54c1',
-								parentId: '71ec84a0-0752-11ea-a4de-338b153089b3',
-								title: 'ewq'
-							}
-						]
-					}
-				]
-			}
-		]
-	}
-}
 
 function Tree() {
 	const [searchString, setSearchString] = useState('')
 	const [searchFocusIndex, setSearchFocusIndex] = useState(0)
 	const [searchFoundCount, setSearchFoundCount] = useState(null)
-	const [treeData, setTreeData] = useState([])
-	const [tree, setTree] = useState({})
+	// const [treeData, setTreeData] = useState([])
+	const [tree, setTree] = useState()
 	const [category, setCategory] = useState('COMPANY')
 
 	const treeQuery = useQuery(GET_TREE)
@@ -149,13 +87,13 @@ function Tree() {
 	const inputEl = useRef()
 	// const inputEls = useRef(treeData.map(() => React.createRef()));
 
-	console.log(treeQuery)
-
 	useEffect(() => {
-		setTreeData(treeQuery.data ? [treeQuery.data.tree.treeData] : [])
-		setTree(treeQuery.tree)
+		const { loading, data } = treeQuery
+		if (!loading) {
+			setTree(data && data.tree)
+		}
 	}, [treeQuery])
-	function createNode() {
+	function handleCreateNode() {
 		const name = inputEl.current.value
 
 		if (name === '') {
@@ -163,49 +101,89 @@ function Tree() {
 			return
 		}
 
-		// setTreeData(newTree.treeData)
-
-		// inputEl.current.value = ''
-		createNewNode({
-			variables: {
-				input: {
-					parentId: null,
-					name,
-					category
-				}
-			}
-		})
-			.then(res => {
-				const newNodeId = res.data.createNode._id
-
-				const newTree = addNodeUnderParent({
-					treeData: treeData,
-					parentKey: null,
-					expandParent: true,
-					getNodeKey,
-					newNode: {
-						id: newNodeId,
-						title: name,
-						parentId: null
-					}
-				})
-
-				createTree({
+		tree
+			? createNewNode({
 					variables: {
-						input: newTree.treeData[0]
+						input: {
+							parentId: null,
+							name,
+							category
+						}
 					}
-				})
+			  })
 					.then(res => {
-						setTreeData(newTree.treeData)
-						inputEl.current.value = ''
+						const { _id, name, parentId } = res.data.createNode
+						const createdNode = {
+							id: _id,
+							title: name,
+							parentId
+						}
+						const updatedTree = {
+							_id: tree._id,
+							treeData: [...tree.treeData, createdNode]
+						}
+						updateTree({
+							variables: {
+								input: updatedTree.treeData,
+								_id: updatedTree._id
+							}
+						})
+							.then(res => {
+								setTree(updatedTree)
+								inputEl.current.value = ''
+							})
+							.catch(err => {
+								console.log(err)
+							})
 					})
 					.catch(err => {
 						console.log(err)
 					})
-			})
-			.catch(err => {
-				console.log(err)
-			})
+			: createNewNode({
+					variables: {
+						input: {
+							parentId: null,
+							name,
+							category
+						}
+					}
+			  })
+					.then(res => {
+						const newNodeId = res.data.createNode._id
+
+						const newTree = addNodeUnderParent({
+							treeData: tree ? tree.treeData : [],
+							parentKey: null,
+							expandParent: true,
+							getNodeKey,
+							newNode: {
+								id: newNodeId,
+								title: name,
+								parentId: null
+							}
+						})
+						const { treeData } = newTree
+						createTree({
+							variables: {
+								input: treeData
+							}
+						})
+							.then(res => {
+								const _id = res && res.data && res.data.createTree
+								const createdTree = {
+									_id,
+									treeData: treeData
+								}
+								setTree(createdTree)
+								inputEl.current.value = ''
+							})
+							.catch(err => {
+								console.log(err)
+							})
+					})
+					.catch(err => {
+						console.log(err)
+					})
 	}
 
 	function handleUpdateNode(rowInfo) {
@@ -230,7 +208,7 @@ function Tree() {
 		})
 			.then(res => {
 				const newTree = changeNodeAtPath({
-					treeData,
+					treeData: tree.treeData,
 					path,
 					getNodeKey,
 					newNode: {
@@ -241,12 +219,16 @@ function Tree() {
 				})
 				updateTree({
 					variables: {
-						input: newTree[0],
+						input: newTree,
 						_id: tree._id
 					}
 				})
 					.then(res => {
-						setTreeData(newTree)
+						const updatedTree = {
+							_id: tree._id,
+							treeData: newTree
+						}
+						setTree(updatedTree)
 						inputEl.current.value = ''
 					})
 					.catch(err => {
@@ -280,7 +262,7 @@ function Tree() {
 				const newNodeId = res.data.createNode._id
 
 				const newTree = addNodeUnderParent({
-					treeData: treeData,
+					treeData: tree.treeData,
 					parentKey: path[path.length - 1],
 					expandParent: true,
 					getNodeKey,
@@ -293,12 +275,16 @@ function Tree() {
 
 				updateTree({
 					variables: {
-						input: newTree.treeData[0],
+						input: newTree.treeData,
 						_id: tree._id
 					}
 				})
 					.then(res => {
-						setTreeData(newTree.treeData)
+						const updatedTree = {
+							_id: tree._id,
+							treeData: newTree.treeData
+						}
+						setTree(updatedTree)
 						inputEl.current.value = ''
 					})
 					.catch(err => {
@@ -323,7 +309,7 @@ function Tree() {
 		}
 
 		const newTree = addNodeUnderParent({
-			treeData: treeData,
+			treeData: tree.treeData,
 			parentKey: path[path.length - 2],
 			expandParent: true,
 			getNodeKey,
@@ -332,7 +318,7 @@ function Tree() {
 			}
 		})
 
-		setTreeData(newTree.treeData)
+		// setTreeData(newTree.treeData)
 
 		inputEl.current.value = ''
 		// inputEls.current[treeIndex].current.value = "";
@@ -349,15 +335,18 @@ function Tree() {
 			}
 		})
 			.then(res => {
+				const updatedTree = {
+					_id: tree._id,
+					treeData: newTreeData
+				}
+				setTree(updatedTree)
 				updateTree({
 					variables: {
-						input: newTreeData[0],
+						input: newTreeData,
 						_id: tree._id
 					}
 				})
-					.then(res => {
-						setTreeData(newTreeData)
-					})
+					.then(res => {})
 					.catch(err => {
 						console.log(err)
 					})
@@ -371,7 +360,7 @@ function Tree() {
 		const { path, node } = rowInfo
 
 		const newTreeData = removeNodeAtPath({
-			treeData,
+			treeData: tree.treeData,
 			path,
 			getNodeKey
 		})
@@ -383,13 +372,17 @@ function Tree() {
 			.then(res => {
 				updateTree({
 					variables: {
-						input: newTreeData[0],
+						input: newTreeData,
 						_id: tree._id
 					}
 				})
 					.then(res => {
 						console.log(res)
-						setTreeData(newTreeData)
+						const updatedTree = {
+							_id: tree._id,
+							treeData: newTreeData
+						}
+						setTree(updatedTree)
 					})
 					.catch(err => {
 						console.log(err)
@@ -401,16 +394,16 @@ function Tree() {
 	}
 
 	function updateTreeData(treeData) {
-		setTreeData(treeData)
+		// setTreeData(treeData)
 	}
 
 	function expand(expanded) {
-		setTreeData(
-			toggleExpandedForAll({
-				treeData,
-				expanded
-			})
-		)
+		// setTreeData(
+		// 	toggleExpandedForAll({
+		// 		treeData,
+		// 		expanded
+		// 	})
+		// )
 	}
 
 	function expandAll() {
@@ -466,7 +459,7 @@ function Tree() {
 					</select>
 				</div>
 				<br />
-				<button onClick={() => createNode()}>Create Node</button>
+				<button onClick={() => handleCreateNode()}>Create Node</button>
 				<br />
 				<button onClick={expandAll}>Expand All</button>
 				<button onClick={collapseAll}>Collapse All</button>
@@ -514,7 +507,7 @@ function Tree() {
 
 			<div style={{ height: '100vh' }}>
 				<SortableTree
-					treeData={treeData}
+					treeData={tree ? tree.treeData : []}
 					onChange={treeData => updateTreeData(treeData)}
 					onMoveNode={rowInfo => handleMoveNode(rowInfo)}
 					searchQuery={searchString}
